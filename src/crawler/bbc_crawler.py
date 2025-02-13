@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 import time
 import random
+from database.db_operations import NewsDatabase
 
 class BBCNewsCrawler:
     def __init__(self):
@@ -11,6 +12,7 @@ class BBCNewsCrawler:
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
+        self.db = NewsDatabase()
 
     def get_category_urls(self) -> Dict[str, str]:
         """
@@ -60,10 +62,15 @@ class BBCNewsCrawler:
             print(f"Error fetching {url}: {e}")
             return None
 
-    def parse_article(self, url: str) -> Optional[Dict]:
+    def parse_article(self, url: str, category: str) -> Optional[Dict]:
         """
         Parse a single article page
         """
+        # Check if URL already exists in database
+        if self.db.url_exists(url):
+            print(f"Skipping already crawled article: {url}")
+            return None
+
         html_content = self.fetch_page(url)
         if not html_content:
             return None
@@ -72,7 +79,10 @@ class BBCNewsCrawler:
         
         try:
             # Get article title
-            title = soup.find('h1').text.strip()
+            title = soup.find('h1')
+            if not title:
+                return None
+            title = title.text.strip()
             
             # Get article content
             article_body = soup.find('article')
@@ -85,13 +95,6 @@ class BBCNewsCrawler:
             # Get publication date
             time_element = soup.find('time')
             published_date = datetime.now().isoformat() if not time_element else time_element.get('datetime')
-            
-            # Determine category from URL
-            category = "World"  # default category
-            for cat, cat_url in self.get_category_urls().items():
-                if cat.lower() in url.lower():
-                    category = cat
-                    break
 
             return {
                 'title': title,
@@ -136,13 +139,18 @@ class BBCNewsCrawler:
 
         article_urls = self.get_article_urls(category_urls[category])
         articles = []
+        skipped_count = 0
 
         for url in article_urls:
-            article_data = self.parse_article(url)
+            article_data = self.parse_article(url, category)
             if article_data:
                 articles.append(article_data)
+            else:
+                skipped_count += 1
             time.sleep(random.uniform(1, 3))  # Random delay between requests
 
+        print(f"Category {category}: Found {len(article_urls)} articles, "
+              f"Processed {len(articles)} new articles, Skipped {skipped_count} existing articles")
         return articles
 
     def crawl_all_categories(self) -> List[Dict]:

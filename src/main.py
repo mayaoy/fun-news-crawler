@@ -7,19 +7,10 @@ from dotenv import load_dotenv
 
 from crawler.bbc_crawler import BBCNewsCrawler
 from database.db_operations import NewsDatabase
+from database.init_db import init_database
 
 # Load environment variables
 load_dotenv()
-
-def setup():
-    """Initialize the database and create necessary directories"""
-    # Create data directory if it doesn't exist
-    data_dir = Path("data")
-    data_dir.mkdir(exist_ok=True)
-    
-    # Initialize database
-    from database.init_db import init_database
-    init_database()
 
 def crawl_and_save():
     """
@@ -46,19 +37,22 @@ def main():
     """
     Main function to run the crawler with scheduling
     """
-    # Setup database and directories
-    setup()
+    # Initialize database
+    print("Initializing database...")
+    init_database()
+    print("Database initialized successfully")
     
     # Get crawl interval from environment variable (default: 10 minutes)
     crawl_interval = int(os.getenv("CRAWL_INTERVAL", 10))
     
     print(f"BBC News Crawler started. Will crawl every {crawl_interval} minutes.")
     
+    # Run first crawl immediately
+    print("\nStarting initial crawl...")
+    crawl_and_save()
+    
     # Schedule the crawling job
     schedule.every(crawl_interval).minutes.do(crawl_and_save)
-    
-    # Run first crawl immediately
-    crawl_and_save()
     
     # Keep the script running
     while True:

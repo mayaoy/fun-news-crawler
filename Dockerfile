@@ -21,5 +21,4 @@ RUN mkdir -p data
 ENV CRAWL_INTERVAL=10
 ENV DB_PATH=/app/data/news.db
 
-# Run the application
-CMD ["python", "src/main.py"] 
+# 移除 CMD，讓 docker-compose 的 command 來控制啟動流程 

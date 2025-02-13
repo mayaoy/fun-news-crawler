@@ -7,9 +7,12 @@ services:
     environment:
       - CRAWL_INTERVAL=10  # 爬蟲間隔（分鐘）
       - DB_PATH=/app/data/news.db
+      - PYTHONPATH=/app/src  # 添加 Python 模組搜尋路徑
+      - PYTHONUNBUFFERED=1  # 禁用 Python 輸出緩衝
     volumes:
       - ./data:/app/data  # 將資料庫檔案持久化到本地
     restart: unless-stopped  # 容器意外停止時自動重啟
+    command: python -u src/main.py
 
   # SQLite 網頁管理介面
   sqlite-web:
