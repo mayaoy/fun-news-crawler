@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  crawler:
+    build: .
+    container_name: bbc-news-crawler
+    environment:
+      - CRAWL_INTERVAL=10  # 爬蟲間隔（分鐘）
+      - DB_PATH=/app/data/news.db
+    volumes:
+      - ./data:/app/data  # 將資料庫檔案持久化到本地
+    restart: unless-stopped  # 容器意外停止時自動重啟
+
+  # SQLite 網頁管理介面
+  sqlite-web:
+    image: coleifer/sqlite-web
+    container_name: bbc-news-sqlite-web
+    ports:
+      - "8080:8080"
+    environment:
+      - SQLITE_DATABASE=/data/news.db
+    volumes:
+      - ./data:/data  # 掛載與爬蟲相同的資料目錄
+    command: sqlite_web --host 0.0.0.0 /data/news.db
+    depends_on:
+      - crawler
+    restart: unless-stopped 

@@ -1,0 +1,47 @@
+{
+    "name": "BBC News Crawler Development",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": ".."
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "streetsidesoftware.code-spell-checker",
+                "mhutchie.git-graph",
+                "shardulm94.trailing-spaces",
+                "vivaxy.vscode-conventional-commits",
+                "ms-python.black-formatter",
+                "charliermarsh.ruff",
+                "ms-python.debugpy",
+                "njpwerner.autodocstring",
+                "ms-python.vscode-pylance"
+            ],
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "zsh",
+                "editor.tabSize": 4,
+                "editor.rulers": [
+                  100
+                ],
+                "editor.formatOnSave": true,
+                "[python]": {
+                  "python.formatting.provider": "charliermarsh.ruff",
+                  "editor.codeActionsOnSave": {
+                    "source.unusedImports": "never",
+                    "source.organizeImports": "explicit"
+                  }
+                },
+                "cSpell.ignorePaths": [
+                  ".devcontainer/devcontainer.json",
+                  "Dockerfile",
+                  "requirements.txt"
+                ],
+                "files.insertFinalNewline": true
+            }
+        }
+    },
+    "forwardPorts": [],
+    "postCreateCommand": "pip install --user -r requirements.txt",
+    "remoteUser": "vscode"
+} 
