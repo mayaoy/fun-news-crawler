@@ -62,18 +62,19 @@ class BBCNewsCrawler:
             print(f"Error fetching {url}: {e}")
             return None
 
-    def parse_article(self, url: str, category: str) -> Optional[Dict]:
+    def parse_and_save_article(self, url: str, category: str) -> bool:
         """
-        Parse a single article page
+        Parse a single article page and save it to database immediately
+        Returns True if article was successfully saved, False otherwise
         """
         # Check if URL already exists in database
         if self.db.url_exists(url):
             print(f"Skipping already crawled article: {url}")
-            return None
+            return False
 
         html_content = self.fetch_page(url)
         if not html_content:
-            return None
+            return False
 
         soup = BeautifulSoup(html_content, 'lxml')
         
@@ -81,13 +82,13 @@ class BBCNewsCrawler:
             # Get article title
             title = soup.find('h1')
             if not title:
-                return None
+                return False
             title = title.text.strip()
             
             # Get article content
             article_body = soup.find('article')
             if not article_body:
-                return None
+                return False
                 
             content_paragraphs = article_body.find_all('p')
             content = '\n'.join([p.text.strip() for p in content_paragraphs if p.text.strip()])
@@ -96,16 +97,21 @@ class BBCNewsCrawler:
             time_element = soup.find('time')
             published_date = datetime.now().isoformat() if not time_element else time_element.get('datetime')
 
-            return {
+            # Create article data
+            article_data = {
                 'title': title,
                 'url': url,
                 'content': content,
                 'category': category,
                 'published_date': published_date
             }
+
+            # Save to database immediately
+            return self.db.save_news(article_data)
+
         except Exception as e:
             print(f"Error parsing article {url}: {e}")
-            return None
+            return False
 
     def get_article_urls(self, category_url: str) -> List[str]:
         """
@@ -128,38 +134,35 @@ class BBCNewsCrawler:
 
         return list(set(articles))  # Remove duplicates
 
-    def crawl_category(self, category: str) -> List[Dict]:
+    def crawl_category(self, category: str) -> Dict[str, int]:
         """
         Crawl all articles from a specific category
+        Returns statistics about the crawl
         """
         category_urls = self.get_category_urls()
         if category not in category_urls:
             print(f"Invalid category: {category}")
-            return []
+            return {"total": 0, "saved": 0, "skipped": 0}
 
         article_urls = self.get_article_urls(category_urls[category])
-        articles = []
+        saved_count = 0
         skipped_count = 0
 
         for url in article_urls:
-            article_data = self.parse_article(url, category)
-            if article_data:
-                articles.append(article_data)
+            if self.parse_and_save_article(url, category):
+                saved_count += 1
+                print(f"Saved article: {url}")
             else:
                 skipped_count += 1
             time.sleep(random.uniform(1, 3))  # Random delay between requests
 
-        print(f"Category {category}: Found {len(article_urls)} articles, "
-              f"Processed {len(articles)} new articles, Skipped {skipped_count} existing articles")
-        return articles
-
-    def crawl_all_categories(self) -> List[Dict]:
-        """
-        Crawl articles from all categories
-        """
-        all_articles = []
-        for category in self.get_category_urls().keys():
-            print(f"Crawling {category} category...")
-            articles = self.crawl_category(category)
-            all_articles.extend(articles)
-        return all_articles 
+        stats = {
+            "total": len(article_urls),
+            "saved": saved_count,
+            "skipped": skipped_count
+        }
+        
+        print(f"Category {category}: Found {stats['total']} articles, "
+              f"Saved {stats['saved']} new articles, Skipped {stats['skipped']} articles")
+        
+        return stats 

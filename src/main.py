@@ -18,20 +18,24 @@ def crawl_and_save():
     """
     print(f"\nStarting crawl at {datetime.now()}")
     
-    # Initialize crawler and database
+    # Initialize crawler
     crawler = BBCNewsCrawler()
-    db = NewsDatabase()
     
-    # Crawl all categories
-    articles = crawler.crawl_all_categories()
+    total_found = 0
+    total_saved = 0
+    total_skipped = 0
     
-    # Save articles to database
-    saved_count = 0
-    for article in articles:
-        if db.save_news(article):
-            saved_count += 1
+    # Crawl category by category
+    for category, url in crawler.get_category_urls().items():
+        print(f"\nCrawling {category} category...")
+        stats = crawler.crawl_category(category)
+        
+        total_found += stats['total']
+        total_saved += stats['saved']
+        total_skipped += stats['skipped']
     
-    print(f"Crawl completed. Saved {saved_count} new articles out of {len(articles)} found.")
+    print(f"\nCrawl completed at {datetime.now()}")
+    print(f"Total: Found {total_found} articles, Saved {total_saved} new articles, Skipped {total_skipped} articles")
 
 def main():
     """
